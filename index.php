@@ -44,7 +44,7 @@ Have any questions? Drop me a mail at <a href="mailto:yasirkula@gmail.com">yasir
 	</div>
 	
 	<?php if( $valid == 1 ) { ?>
-	<pre id="status"></pre>
+	<pre id="status">Status: <span style=\"text-style=bold; color:blue;\">please wait...</span></pre>
 	<pre id="result"></pre>
 	<pre id="error" style="color: red; text-style: bold;"></pre>
 	<?php } ?>
@@ -61,14 +61,11 @@ Have any questions? Drop me a mail at <a href="mailto:yasirkula@gmail.com">yasir
 	
 	function checkAuth() 
 	{
-		if( isValidOp() )
-		{
-			gapi.auth.authorize( {
-				'client_id': CLIENT_ID,
-				'scope': SCOPES,
-				'immediate': true
-			}, handleAuthResult );
-		}
+		gapi.auth.authorize( {
+			'client_id': CLIENT_ID,
+			'scope': SCOPES,
+			'immediate': true
+		}, handleAuthResult );
 	}
 
 	function handleAuthResult( authResult ) 
@@ -76,22 +73,22 @@ Have any questions? Drop me a mail at <a href="mailto:yasirkula@gmail.com">yasir
 		var authorizeDiv = document.getElementById('authorize-div');
 		if (authResult && !authResult.error) {
 			authorizeDiv.style.display = 'none';
-			loadDriveApi();
+			if( isValidOp() )
+				loadDriveApi();
 		} else {
 			authorizeDiv.style.display = 'inline';
+			if( isValidOp() )
+				statusText.innerHTML = "";
 		}
 	}
 
 	function handleAuthClick() 
 	{
-		if( isValidOp() )
-		{
-			gapi.auth.authorize( {
-				client_id: CLIENT_ID,
-				scope: SCOPES,
-				immediate: false
-			}, handleAuthResult );
-		}
+		gapi.auth.authorize( {
+			client_id: CLIENT_ID,
+			scope: SCOPES,
+			immediate: false
+		}, handleAuthResult );
 		
 		return false;
 	}
@@ -103,6 +100,9 @@ Have any questions? Drop me a mail at <a href="mailto:yasirkula@gmail.com">yasir
 
 	function handleRequest() 
 	{
+		if( !isValidOp() )
+			return;
+			
 		statusText.innerHTML = "Status: <span style=\"text-style=bold; color:blue;\">please wait...</span>";
 		
 		var request = gapi.client.drive.files.get({
@@ -286,13 +286,6 @@ Have any questions? Drop me a mail at <a href="mailto:yasirkula@gmail.com">yasir
 		}
 		
 		statusText.innerHTML = "Status: <span style=\"text-style=bold; color:red;\">see error log below</span>";
-	}
-
-	function appendPre(message) 
-	{
-		var pre = document.getElementById('output');
-		var textContent = document.createTextNode(message + '\n');
-		pre.appendChild(textContent);
 	}
 	</script>
 	<script src="https://apis.google.com/js/client.js?onload=checkAuth"></script>

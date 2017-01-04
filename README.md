@@ -16,4 +16,4 @@ Instead, you can open the folder that contains your files with this app and get 
 
 It is sufficient to just share the folder that contains your files publicly for those download links to work everywhere. Now you can write a simple script to fetch the download links from that list and use it however you want.
 
-Be aware that downloading big files using a direct download link will prompt a Drive dialog stating that "The file exceeds the maximum size that Google can scan." and the user must click "Download anyway" button to proceed.
+Be aware that downloading big files using a direct download link will prompt a Drive dialog stating that "The file exceeds the maximum size that Google can scan." and the user must click "Download anyway" button to proceed. You can skip this step in C# using this example code snippet (uses WebClient): https://gist.github.com/yasirkula/d0ec0c07b138748e5feaecbd93b6223c

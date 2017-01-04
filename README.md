@@ -8,7 +8,7 @@ Using the Drive API, after user authenticates the app, a number of queries are m
 - If user opened a file with this app, download link to that file is returned
 - If user opened a folder or used the New (create) button with this app, download links for any shared files in that folder and any folders under it (recursive) are returned
 
-##Why would I want to use an app like that?
+##Why would I want to use this app?
 
 Say you have a large number of files and you want to get a download link for each of these files. You decide to host your files on Google Drive™. The thing is, you don't want to spend so much time sharing each file separately and copying their download links manually. 
 

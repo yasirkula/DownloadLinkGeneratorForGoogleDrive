@@ -1,0 +1,1 @@
+These PHP files are not used anymore (by http://yasirkula.net/drive/downloadlinkgenerator/). This version used the PHP client of Drive API, whereas the new version uses Javascript client.

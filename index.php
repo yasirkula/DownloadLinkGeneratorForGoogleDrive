@@ -36,6 +36,9 @@
 	
 	<input id="fileId" type="hidden" value="<?php echo $fileId; ?>" />
 	
+	<pre>Source code available at: <a href="https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive">https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive</a> (using <i>HTML</i>, <i>PHP</i> and <i>Javascript</i>)</br>
+Have any questions? Drop me a mail at <a href="mailto:yasirkula@gmail.com">yasirkula@gmail.com</a></pre>
+	
 	<div id="authorize-div" style="display: none">
 		You need to authorize access to Drive first: <button id="authorize-button" onclick="handleAuthClick()">Authorize</button>
 	</div>

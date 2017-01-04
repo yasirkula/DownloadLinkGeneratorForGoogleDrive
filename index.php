@@ -44,7 +44,7 @@ Have any questions? Drop me a mail at <a href="mailto:yasirkula@gmail.com">yasir
 	</div>
 	
 	<?php if( $valid == 1 ) { ?>
-	<pre id="status">Status: <span style=\"text-style=bold; color:blue;\">please wait...</span></pre>
+	<pre id="status">Status: <span style="text-style=bold; color:blue;">please wait...</span></pre>
 	<pre id="result"></pre>
 	<pre id="error" style="color: red; text-style: bold;"></pre>
 	<?php } ?>

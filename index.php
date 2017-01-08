@@ -8,36 +8,51 @@
 	{
 		$state = json_decode($_GET["state"]);
 		
-		if( $state->action == 'open' )
+		if( $state && is_object( $state ) )
 		{
-			if( $state->ids )
-				$fileId = $state->ids[0];
+			if( $state->action == 'open' )
+			{
+				if( isset( $state->ids ) && $state->ids )
+					$fileId = $state->ids[0];
+				else
+				{
+					echo 'A document created in Drive does not support direct download. You should first convert it to a downloadable format';
+					$valid = 0;
+				}
+			}
+			else if( $state->action == 'create' )
+			{
+				if( isset( $state->folderId ) && $state->folderId )
+					$fileId = $state->folderId;
+				else
+				{
+					echo 'Use the service with \'Open\' or \'New\' buttons in Drive UI';
+					$valid = 0;
+				}
+			}
 			else
 			{
-				echo 'A document created in Drive does not support direct download. You should first convert it to a downloadable format';
+				echo 'Invalid state';
 				$valid = 0;
 			}
 		}
-		else if( $state->action == 'create' )
-		{
-			$fileId = $state->folderId;
-		}
 		else
 		{
-			echo 'Invalid state';
+			echo 'Use the service with \'Open\' or \'New\' buttons in Drive UI';
 			$valid = 0;
 		}
 	}
 	else
 	{
-		echo 'Use the service with \'Open\' or \'Create\' buttons in Drive UI';
+		echo 'Use the service with \'Open\' or \'New\' buttons in Drive UI';
 		$valid = 0;
 	}?>
 	
 	<input id="fileId" type="hidden" value="<?php echo $fileId; ?>" />
 	
 	<pre>Source code available at: <a href="https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive">https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive</a> (using <i>HTML</i>, <i>PHP</i> and <i>Javascript</i>)</br>
-Have any questions? Drop me a mail at <a href="mailto:yasirkula@gmail.com">yasirkula@gmail.com</a></pre>
+Have any questions? Drop me a mail at <a href="mailto:yasirkula@gmail.com">yasirkula@gmail.com</a></br>
+Note that the file(s) or the parent folder must be shared publicly for the download links to work everywhere.</pre>
 	
 	<div id="authorize-div" style="display: none">
 		You need to authorize access to Drive first: <button id="authorize-button" onclick="handleAuthClick()">Authorize</button>

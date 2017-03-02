@@ -162,7 +162,7 @@ Note that the file(s) or the parent folder must be shared publicly for the downl
 						{
 							var file = files[i];
 							if( file.webContentLink )
-								resultText.innerHTML += relativePath + file.name + " " + file.webContentLink + "\r\n";
+								resultText.innerHTML += relativePath + file.name + " <a href=\"" + file.webContentLink + "\">" + file.webContentLink + "</a>\r\n";
 						}
 					}
 					

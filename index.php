@@ -51,7 +51,7 @@
 	<input id="fileId" type="hidden" value="<?php echo $fileId; ?>" />
 	
 	<pre>Source code available at: <a href="https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive">https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive</a> (using <i>HTML</i>, <i>PHP</i> and <i>Javascript</i>)</br>
-Have any questions? Drop me a mail at <a href="mailto:yasirkula@gmail.com">yasirkula@gmail.com</a></br>
+																									   
 Note that the file(s) or the parent folder must be shared publicly for the download links to work everywhere.</pre>
 	
 	<div id="authorize-div" style="display: none">
@@ -59,7 +59,7 @@ Note that the file(s) or the parent folder must be shared publicly for the downl
 	</div>
 	
 	<?php if( $valid == 1 ) { ?>
-	<pre id="status">Status: <span style="text-style=bold; color:blue;">please wait...</span></pre>
+	<pre id="status"><b>Status:</b> <span style="text-style=bold; color:blue;">generating download link(s), please wait...</span></pre>
 	<pre id="result"></pre>
 	<pre id="error" style="color: red; text-style: bold;"></pre>
 	<?php } ?>
@@ -118,11 +118,11 @@ Note that the file(s) or the parent folder must be shared publicly for the downl
 		if( !isValidOp() )
 			return;
 			
-		statusText.innerHTML = "Status: <span style=\"text-style=bold; color:blue;\">please wait...</span>";
+		statusText.innerHTML = "<b>Status:</b> <span style=\"text-style=bold; color:blue;\">generating download link(s), please wait...</span>";
 		
 		var request = gapi.client.drive.files.get({
 			'fileId': getFileId(),
-			'fields': "mimeType, webContentLink"
+			'fields': "mimeType, name, webContentLink"
 		});
 		
 		request.execute( function(resp) {
@@ -135,11 +135,11 @@ Note that the file(s) or the parent folder must be shared publicly for the downl
 				else
 				{
 					if( resp.webContentLink )
-						resultText.innerHTML = resp.webContentLink;
+						resultText.innerHTML = resp.name + " <a href=\"" + resp.webContentLink + "\">" + resp.webContentLink + "</a>";
 					else
 						resultText.innerHTML = "File is not shared";
 						
-					statusText.innerHTML = "Status: <span style=\"text-style=bold; color:green;\">finished</span>";
+					statusText.innerHTML = "<b>Status:</b> <span style=\"text-style=bold; color:green;\">finished</span>";
 				}
 			}
 			else
@@ -188,7 +188,7 @@ Note that the file(s) or the parent folder must be shared publicly for the downl
 						}
 						else
 						{
-							statusText.innerHTML = "Status: <span style=\"text-style=bold; color:green;\">finished</span>";
+							statusText.innerHTML = "<b>Status:</b> <span style=\"text-style=bold; color:green;\">finished</span>";
 						}
 					}
 				}
@@ -300,7 +300,7 @@ Note that the file(s) or the parent folder must be shared publicly for the downl
 			errorText.innerHTML = err.code + ": " + err.message + " (" + reason + ": " + msg + ")\r\n";
 		}
 		
-		statusText.innerHTML = "Status: <span style=\"text-style=bold; color:red;\">see error log below</span>";
+		statusText.innerHTML = "<b>Status:</b> <span style=\"text-style=bold; color:red;\">see error log below</span>";
 	}
 	</script>
 	<script src="https://apis.google.com/js/client.js?onload=checkAuth"></script>

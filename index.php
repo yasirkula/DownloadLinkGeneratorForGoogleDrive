@@ -16,7 +16,7 @@
 					$fileId = $state->ids[0];
 				else
 				{
-					echo 'A document created in Drive does not support direct download. You should first convert it to a downloadable format';
+					echo '<b>A document created in Drive does not support direct download. You should first convert it to a downloadable format</b>';
 					$valid = 0;
 				}
 			}
@@ -26,36 +26,35 @@
 					$fileId = $state->folderId;
 				else
 				{
-					echo 'Use the service with \'Open\' or \'New\' buttons in Drive UI';
+					echo '<b>Use the service with \'Open with\' or \'New\' buttons in Drive UI</b>';
 					$valid = 0;
 				}
 			}
 			else
 			{
-				echo 'Invalid state';
+				echo '<b>Invalid state, try again</b>';
 				$valid = 0;
 			}
 		}
 		else
 		{
-			echo 'Use the service with \'Open\' or \'New\' buttons in Drive UI';
+			echo '<b>Use the service with \'Open with\' or \'New\' buttons in Drive UI</b>';
 			$valid = 0;
 		}
 	}
 	else
 	{
-		echo 'Use the service with \'Open\' or \'New\' buttons in Drive UI';
+		echo '<b>Use the service with \'Open with\' or \'New\' buttons in Drive UI</b>';
 		$valid = 0;
 	}?>
 	
 	<input id="fileId" type="hidden" value="<?php echo $fileId; ?>" />
 	
 	<pre>Source code available at: <a href="https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive">https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive</a> (using <i>HTML</i>, <i>PHP</i> and <i>Javascript</i>)</br>
-																									   
 Note that the file(s) or the parent folder must be shared publicly for the download links to work everywhere.</pre>
 	
 	<div id="authorize-div" style="display: none">
-		You need to authorize access to Drive first: <button id="authorize-button" onclick="handleAuthClick()">Authorize</button>
+		<b>You need to authorize access to Drive first:</b> <button id="authorize-button" onclick="handleAuthClick()">Authorize</button>
 	</div>
 	
 	<?php if( $valid == 1 ) { ?>

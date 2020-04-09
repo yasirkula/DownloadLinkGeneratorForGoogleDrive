@@ -1,5 +1,8 @@
 # Download Link Generator For Google Drive™
+
 Create list of files and their download links in a Google Drive™ folder. Available at: http://yasirkula.net/drive/downloadlinkgenerator/ (it is integrated with the Drive UI, see https://gsuite.google.com/marketplace/app/download_link_generator_for_drive/631283629814)
+
+**[Support the Developer ☕](https://yasirkula.itch.io/unity3d)**
 
 ## How does it work?
 

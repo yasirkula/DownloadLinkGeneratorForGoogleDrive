@@ -19,6 +19,6 @@ Say you have a large number of files on Google Drive™ and you want to get a do
 
 Instead, you can open the Drive™ folder that contains your files with this extension and the extension will generate a list of the download links in the following format (one file per line): `{File relative path} {File's download url}`
 
-For these download links to work everywhere, it is sufficient to make the folder that contains your files public (to do this, you can right click the folder, select "*Get shareable link*" and change visibility from "*Restricted*" to "*Anyone with the link*").
+For these download links to work everywhere, it is sufficient to make the folder that contains your files public (to do this, you can right click the folder, select "*Get link*" and change visibility from "*Restricted*" to "*Anyone with the link*").
 
 Be aware that downloading big files using a direct download link will prompt a Drive™ dialog stating that "*The file exceeds the maximum size that Google can scan.*" and the user must click the "*Download anyway*" button to proceed. In C#, you can skip this step using the following WebClient implementation: https://gist.github.com/yasirkula/d0ec0c07b138748e5feaecbd93b6223c

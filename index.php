@@ -1,8 +1,8 @@
 <html>
-<body>
+<body style="font-family: Helvetica, sans-serif; margin-bottom: 60px;">
 	<?php
-	$valid = 1;
 	$fileId = '';
+	$preCheckError = '';
 	
 	if( isset($_GET["state"]) && $_GET["state"] )
 	{
@@ -15,53 +15,50 @@
 				if( isset( $state->ids ) && $state->ids )
 					$fileId = $state->ids[0];
 				else
-				{
-					echo '<b>A document created in Drive does not support direct download. You should first convert it to a downloadable format</b>';
-					$valid = 0;
-				}
+					$preCheckError = 'Download links can\'t be generated for documents created in Drive. You should first convert the document to a downloadable format (e.g. .doc, .docx, .ppt, .xls).';
 			}
 			else if( $state->action == 'create' )
 			{
 				if( isset( $state->folderId ) && $state->folderId )
 					$fileId = $state->folderId;
 				else
-				{
-					echo '<b>Use the service with \'Open with\' or \'New\' buttons in Drive UI</b>';
-					$valid = 0;
-				}
+					$preCheckError = 'You need to right click a file/folder in Drive and select \'Open with-&gt;Download Link Generator\'.';
 			}
 			else
-			{
-				echo '<b>Invalid state, try again</b>';
-				$valid = 0;
-			}
+				$preCheckError = 'Invalid state, try again.';
 		}
 		else
-		{
-			echo '<b>Use the service with \'Open with\' or \'New\' buttons in Drive UI</b>';
-			$valid = 0;
-		}
+			$preCheckError = 'You need to right click a file/folder in Drive and select \'Open with-&gt;Download Link Generator\'.';
 	}
 	else
-	{
-		echo '<b>Use the service with \'Open with\' or \'New\' buttons in Drive UI</b>';
-		$valid = 0;
-	}?>
+		$preCheckError = 'You need to right click a file/folder in Drive and select \'Open with-&gt;Download Link Generator\'.';
+	?>
 	
 	<input id="fileId" type="hidden" value="<?php echo $fileId; ?>" />
 	
-	<pre>Source code available at: <a href="https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive">https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive</a> (using <i>HTML</i>, <i>PHP</i> and <i>Javascript</i>)</br>
-Note that the file(s) or the parent folder must be shared publicly for the download links to work everywhere.</pre>
+	<div style="max-width:680px; margin:0 auto; padding-top: 30px; line-height: 150%;">
+	
+	<h3 style="text-align:center;">Download Link Generator for Drive™</h3>
+	
+	<p style="text-align:center;"><a href="https://github.com/yasirkula/DownloadLinkGeneratorForGoogleDrive">Source Code</a> | <a href="https://gsuite.google.com/marketplace/app/download_link_generator_for_drive/631283629814">Marketplace</a></p>
+	
+	<p>This Drive™ extension/add-on lets you generate direct download links for the files in your Drive™ storage. Simply right click the file/folder in your Drive™ and select <i>Open with-&gt;Download Link Generator</i>. When a folder is selected, download links for all the files in that folder are generated. If <i>Download Link Generator</i> button isn't present, then you may first need to authorize this extension by clicking the <i>Authorize</i> button below.</p>
+	
+	<p>For the generated download links to work everywhere, you need to make the file/folder public. To do this, you can right click the file/folder, select <i>Get link</i> and change visibility from <i>Restricted</i> to <i>Anyone with the link</i>.</p>
+	
+	<p><b>Privacy:</b> To generate download links, this extension accesses the metadata of the selected file/folder and reads its unique ID. It is necessary because the download link is generated from that ID. All communications with the Drive™ servers is handled via the official <i>Drive™ Javascript API</i> and your Drive™ data is not stored in any way in our databases. This extension is hosted at <i>yasirkula.net</i> website and is subject to its <a href="https://yasirkula.net/privacy-policy/">Privacy Policy</a>.</p>
 	
 	<div id="authorize-div" style="display: none">
 		<b>You need to authorize access to Drive first:</b> <button id="authorize-button" onclick="handleAuthClick()">Authorize</button>
 	</div>
 	
-	<?php if( $valid == 1 ) { ?>
-	<pre id="status"><b>Status:</b> <span style="text-style=bold; color:blue;">generating download link(s), please wait...</span></pre>
-	<pre id="result"></pre>
-	<pre id="error" style="color: red; text-style: bold;"></pre>
-	<?php } ?>
+	</div>
+	
+	<?php if( $preCheckError == '' ) { ?>
+	<pre id="status" style="max-width:680px; margin:0 auto;"><b>Status:</b> <span style="text-style=bold; color:blue;">generating download link(s), please wait...</span></pre>
+	</br><pre id="result" style="display:table; margin:0 auto;"></pre>
+	</br><pre id="error" style="color: red; text-style: bold; max-width:680px; margin:0 auto;"></pre>
+	<?php } else echo '</br><p id="pre-check-error" style="max-width:680px; margin:0 auto; color: red; display: none;"><b>' . $preCheckError . '</b></p>'; ?>
 	
 	<script type="text/javascript">
 	var CLIENT_ID = 'YOUR_APP_CLIENT_ID';
@@ -84,15 +81,26 @@ Note that the file(s) or the parent folder must be shared publicly for the downl
 
 	function handleAuthResult( authResult ) 
 	{
-		var authorizeDiv = document.getElementById('authorize-div');
-		if (authResult && !authResult.error) {
+		var authorizeDiv = document.getElementById( 'authorize-div' );
+		var preCheckErrorDiv = document.getElementById( 'pre-check-error' );
+		
+		if( authResult && !authResult.error )
+		{
 			authorizeDiv.style.display = 'none';
 			if( isValidOp() )
 				loadDriveApi();
-		} else {
-			authorizeDiv.style.display = 'inline';
+			
+			if( preCheckErrorDiv )
+				preCheckErrorDiv.style.display = 'block';
+		}
+		else
+		{
+			authorizeDiv.style.display = 'block';
 			if( isValidOp() )
 				statusText.innerHTML = "";
+			
+			if( preCheckErrorDiv )
+				preCheckErrorDiv.style.display = 'none';
 		}
 	}
 

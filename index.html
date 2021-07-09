@@ -1,42 +1,10 @@
 <html>
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+</head>
 <body style="font-family: Helvetica, sans-serif; margin-bottom: 60px;">
-	<?php
-	$fileId = '';
-	$preCheckError = '';
-	
-	if( isset($_GET["state"]) && $_GET["state"] )
-	{
-		$state = json_decode($_GET["state"]);
-		
-		if( $state && is_object( $state ) )
-		{
-			if( $state->action == 'open' )
-			{
-				if( isset( $state->ids ) && $state->ids )
-					$fileId = $state->ids[0];
-				else
-					$preCheckError = 'Download links can\'t be generated for documents created in Drive. You should first convert the document to a downloadable format (e.g. .doc, .docx, .ppt, .xls).';
-			}
-			else if( $state->action == 'create' )
-			{
-				if( isset( $state->folderId ) && $state->folderId )
-					$fileId = $state->folderId;
-				else
-					$preCheckError = 'You need to right click a file/folder in Drive and select \'Open with-&gt;Download Link Generator\'.';
-			}
-			else
-				$preCheckError = 'Invalid state, try again.';
-		}
-		else
-			$preCheckError = 'You need to right click a file/folder in Drive and select \'Open with-&gt;Download Link Generator\'.';
-	}
-	else
-		$preCheckError = 'You need to right click a file/folder in Drive and select \'Open with-&gt;Download Link Generator\'.';
-	?>
-	
-	<input id="fileId" type="hidden" value="<?php echo $fileId; ?>" />
-	
-	<div style="max-width:680px; margin:0 auto; padding-top: 30px; line-height: 150%;">
+
+	<div style="max-width:680px; margin:0 auto; padding-top: 10px; line-height: 130%;">
 	
 	<h3 style="text-align:center;">Download Link Generator for Drive™</h3>
 	
@@ -46,32 +14,72 @@
 	
 	<p>For the generated download links to work everywhere, you need to make the file/folder public. To do this, you can right click the file/folder, select <i>Get link</i> and change visibility from <i>Restricted</i> to <i>Anyone with the link</i>.</p>
 	
-	<p><b>Privacy:</b> To generate download links, this extension accesses the metadata of the selected file/folder and reads its unique ID. It is necessary because the download link is generated from that ID. All communications with the Drive™ servers is handled via the official <i>Drive™ Javascript API</i> and your Drive™ data is not stored in any way in our databases. This extension is hosted at <i>yasirkula.net</i> website and is subject to its <a href="https://yasirkula.net/privacy-policy/">Privacy Policy</a>.</p>
+	<p><b>Privacy:</b> This extension accesses the metadata of the selected file/folder and reads its download link from that metadata. All communications with the Drive™ servers is handled via the official <i>Drive™ Javascript API</i> and your Drive™ data is not stored in any way in our databases. Regarding the "<i>See information about your Google Drive files</i>" permission asked during the authorization:
+	
+	<ul>
+		<li><b>The titles and descriptions of your files:</b> names and the download links of the files that you've opened with this extension will be accessed</li>
+		<li><b>The names and email addresses of people you share files with:</b> this extension doesn't access this info, this is just a generic text explaining the extents of the permission that this extension asks for. It doesn't necessarily mean that the extension accesses that data</li>
+		<li><b>Your folders and how files are organized:</b> when a folder is opened with this extension, names and download links of all files inside that directory will be read by this extension</li>
+	</ul>
+	
+	<p>This extension is hosted at <i>yasirkula.net</i> website and is subject to its <a href="https://yasirkula.net/privacy-policy/">Privacy Policy</a>.</p>
 	
 	<div id="authorize-div" style="display: none">
 		<b>You need to authorize access to Drive first:</b> <button id="authorize-button" onclick="handleAuthClick()">Authorize</button>
 	</div>
 	
+	<p id="pre-check-error" style="color: red; display: none;"></p>
+	
 	</div>
 	
-	<?php if( $preCheckError == '' ) { ?>
-	<pre id="status" style="max-width:680px; margin:0 auto;"><b>Status:</b> <span style="text-style=bold; color:blue;">generating download link(s), please wait...</span></pre>
+	<pre id="status" style="max-width:680px; margin:0 auto;"><b>Status:</b> <span style="text-style=bold; color:blue;">connecting to Drive™ servers, please wait...</span></pre>
 	</br><pre id="result" style="display:table; margin:0 auto;"></pre>
 	</br><pre id="error" style="color: red; text-style: bold; max-width:680px; margin:0 auto;"></pre>
-	<?php } else echo '</br><p id="pre-check-error" style="max-width:680px; margin:0 auto; color: red; display: none;"><b>' . $preCheckError . '</b></p>'; ?>
 	
 	<script type="text/javascript">
 	var CLIENT_ID = 'YOUR_APP_CLIENT_ID';
 	var SCOPES = 'https://www.googleapis.com/auth/drive.install https://www.googleapis.com/auth/drive.metadata.readonly';
 
-	var statusText = document.getElementById('status');
-	var resultText = document.getElementById('result');
-	var errorText = document.getElementById('error');
+	var statusText = document.getElementById( 'status' );
+	var resultText = document.getElementById( 'result' );
+	var errorText = document.getElementById( 'error' );
+	var preCheckErrorText = document.getElementById( 'pre-check-error' );
+	var authorizeButton = document.getElementById( 'authorize-div' );
+	
+	var parameters = "";
+	var fileId = "";
+	var preCheckError = "You need to right click a file/folder in Drive and select 'Open with->Download Link Generator'.";
 	
 	var waitingFoldersStack = [];
 	
 	function checkAuth() 
 	{
+		var parameters = getQueryVariable( 'state' );
+		if( parameters && parameters.length > 0 )
+		{
+			var parametersJSON = JSON.parse( parameters );
+			if( parametersJSON )
+			{
+				if( parametersJSON.action == "open" )
+				{
+					if( parametersJSON.ids )
+					{
+						fileId = parametersJSON.ids[0];
+						preCheckError = "";
+					}
+					else
+						preCheckError = "Download links can't be generated for documents created in Drive. You should first convert the document to a downloadable format (e.g. .doc, .docx, .ppt, .xls)."
+				}
+				else if( parametersJSON.action == "create" && parametersJSON.folderId )
+				{
+					fileId = parametersJSON.folderId;
+					preCheckError = "";
+				}
+				else
+					preCheckError = "Invalid state, please try again.";
+			}
+		}
+		
 		gapi.auth.authorize( {
 			'client_id': CLIENT_ID,
 			'scope': SCOPES,
@@ -81,26 +89,24 @@
 
 	function handleAuthResult( authResult ) 
 	{
-		var authorizeDiv = document.getElementById( 'authorize-div' );
-		var preCheckErrorDiv = document.getElementById( 'pre-check-error' );
-		
 		if( authResult && !authResult.error )
 		{
-			authorizeDiv.style.display = 'none';
-			if( isValidOp() )
-				loadDriveApi();
+			authorizeButton.style.display = 'none';
 			
-			if( preCheckErrorDiv )
-				preCheckErrorDiv.style.display = 'block';
+			if( preCheckError.length > 0 )
+			{
+				statusText.innerHTML = "";
+				preCheckErrorText.style.display = 'block';
+				preCheckErrorText.innerHTML = "<b>" + preCheckError + "</b>";
+			}
+			else if( fileId.length > 0 )
+				loadDriveApi();
 		}
 		else
 		{
-			authorizeDiv.style.display = 'block';
-			if( isValidOp() )
-				statusText.innerHTML = "";
-			
-			if( preCheckErrorDiv )
-				preCheckErrorDiv.style.display = 'none';
+			authorizeButton.style.display = 'block';
+			preCheckErrorText.style.display = 'none';
+			statusText.innerHTML = "";
 		}
 	}
 
@@ -117,28 +123,27 @@
 
 	function loadDriveApi() 
 	{
-		gapi.client.load('drive', 'v3', handleRequest);
+		gapi.client.load( 'drive', 'v3', handleRequest );
 	}
 
 	function handleRequest() 
 	{
-		if( !isValidOp() )
+		if( fileId.length === 0 )
 			return;
 			
 		statusText.innerHTML = "<b>Status:</b> <span style=\"text-style=bold; color:blue;\">generating download link(s), please wait...</span>";
 		
 		var request = gapi.client.drive.files.get({
-			'fileId': getFileId(),
+			'fileId': fileId,
 			'fields': "mimeType, name, webContentLink"
 		});
 		
-		request.execute( function(resp) {
+		request.execute( function( resp )
+		{
 			if( !resp.error )
 			{
 				if( resp.mimeType == 'application/vnd.google-apps.folder' )
-				{
-					getFilesRecursively( getFileId(), "" );
-				}
+					getFilesRecursively( fileId, "" );
 				else
 				{
 					if( resp.webContentLink )
@@ -257,20 +262,6 @@
 		getFolders( request );
 	}
 	
-	function getFileId()
-	{
-		var val = document.getElementById('fileId').value;
-		if( !val )
-			return "";
-
-		return val;
-	}
-	
-	function isValidOp()
-	{
-		return getFileId().length > 0;
-	}
-	
 	function handleError( err )
 	{
 		console.log( "ERROR: " + JSON.stringify( err ) );
@@ -308,6 +299,24 @@
 		}
 		
 		statusText.innerHTML = "<b>Status:</b> <span style=\"text-style=bold; color:red;\">see error log below</span>";
+	}
+	
+	// Credit: https://css-tricks.com/snippets/javascript/get-url-variables/
+	function getQueryVariable( variable )
+	{
+		var query = window.location.search;
+		if( !query || query.length === 0 )
+			return "";
+		
+		var vars = query.substring( 1 ).split( "&" );
+		for( var i = 0; i < vars.length; i++ )
+		{
+			var pair = vars[i].split( "=" );
+			if( pair[0] == variable )
+				return decodeURIComponent( pair[1].replace( /\+/g, ' ' ) );
+		}
+		
+		return "";
 	}
 	</script>
 	<script src="https://apis.google.com/js/client.js?onload=checkAuth"></script>

@@ -4,6 +4,23 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	<title>Download Link Generator for Drive™</title>
 	<link rel="icon" href="favicon.png">
+	<style>
+	table, td
+	{
+		border: 1px solid #888;
+		border-collapse: collapse;
+	}
+	td
+	{
+		padding: 0px 4px 0px 4px;
+		border-left: none;
+		border-right: none;
+	}
+	td > pre
+	{
+		margin: 7px 0px 7px 0px;
+	}
+	</style>
 </head>
 <body style="font-family: Helvetica, sans-serif; margin-bottom: 60px;">
 
@@ -27,24 +44,35 @@
 	
 	<p>This extension is hosted at <i>yasirkula.net</i> website and is subject to its <a href="https://yasirkula.net/privacy-policy/">Privacy Policy</a>.</p>
 	
-	<div id="authorize-div" style="display: none">
+	<div id="authorize-div" style="display:none">
 		<b>You need to authorize access to Drive first:</b> <button id="authorize-button" onclick="handleAuthClick()">Authorize</button>
 	</div>
 	
-	<p id="pre-check-error" style="color: red; display: none;"></p>
+	<p id="pre-check-error" style="color:red; display:none;"></p>
+	
+	<p id="result-table-toggle" style="display:none">
+		<input type="checkbox" id="result-table-toggle-input" onchange="onResultsDisplayMethodChanged(this)">
+		<label for="result-table-toggle-input">Display results as table</label>
+	</p>
 	
 	</div>
 	
 	<pre id="status" style="max-width:680px; margin:0 auto;"><b>Status: <span style="color:blue;">connecting to Drive™ servers, please wait...</span></b></pre><br />
-	<pre id="result" style="display:table; margin:0 auto;"></pre><br />
+	
+	<pre id="result" style="display:table; margin:0 auto;"></pre>
+	
+	<table id="result-table" style="display:none; margin:0 auto;"></table><br />
+	
 	<pre id="error" style="color: red; max-width:680px; margin:0 auto;"></pre>
 	
-	<script type="text/javascript">
+	<script>
 	var CLIENT_ID = 'YOUR_APP_CLIENT_ID';
 	var SCOPES = 'https://www.googleapis.com/auth/drive.install https://www.googleapis.com/auth/drive.metadata.readonly';
 
 	var statusText = document.getElementById( 'status' );
 	var resultText = document.getElementById( 'result' );
+	var resultTable = document.getElementById( 'result-table' );
+	var resultTableToggle = document.getElementById( 'result-table-toggle' );
 	var errorText = document.getElementById( 'error' );
 	var preCheckErrorText = document.getElementById( 'pre-check-error' );
 	var authorizeButton = document.getElementById( 'authorize-div' );
@@ -102,7 +130,10 @@
 				preCheckErrorText.innerHTML = "<b>" + preCheckError + "</b>";
 			}
 			else if( fileId.length > 0 )
+			{
+				resultTableToggle.style.display = 'block';
 				loadDriveApi();
+			}
 		}
 		else
 		{
@@ -149,7 +180,7 @@
 				else
 				{
 					if( resp.webContentLink )
-						resultText.innerHTML = resp.name + " <a href=\"" + resp.webContentLink + "\">" + resp.webContentLink + "</a>";
+						updateResult( resp.name, resp.webContentLink );
 					else
 						resultText.innerHTML = "File is not shared";
 						
@@ -176,7 +207,7 @@
 						{
 							var file = files[i];
 							if( file.webContentLink )
-								resultText.innerHTML += relativePath + file.name + " <a href=\"" + file.webContentLink + "\">" + file.webContentLink + "</a>\r\n";
+								updateResult( relativePath + file.name, file.webContentLink );
 						}
 					}
 					
@@ -223,7 +254,7 @@
 						for (var i = 0; i < folders.length; i++) 
 						{
 							var folder = folders[i];
-							waitingFoldersStack.push( { _id: folder.id, _relativePath: relativePath + folder.name + "\\" } )
+							waitingFoldersStack.push( { _id: folder.id, _relativePath: relativePath + folder.name + "/" } )
 						}
 					}
 					
@@ -301,6 +332,29 @@
 		}
 		
 		statusText.innerHTML = "<b>Status: <span style=\"color:red;\">see error log below</span></b>";
+	}
+	
+	function updateResult( relativePath, link )
+	{
+		resultText.innerHTML += relativePath + " <a href=\"" + link + "\">" + link + "</a>\r\n";
+		
+		var newRow = resultTable.insertRow( -1 );
+		newRow.insertCell( 0 ).innerHTML = "<pre>" + relativePath + "</pre>";
+		newRow.insertCell( 1 ).innerHTML = "<pre><a href=\"" + link + "\">" + link + "</a></pre>";
+	}
+	
+	function onResultsDisplayMethodChanged( checkbox )
+	{
+		if( checkbox.checked )
+		{
+			resultText.style.display = 'none';
+			resultTable.style.display = 'table';
+		}
+		else
+		{
+			resultText.style.display = 'table';
+			resultTable.style.display = 'none';
+		}
 	}
 	
 	// Credit: https://css-tricks.com/snippets/javascript/get-url-variables/

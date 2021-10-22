@@ -193,13 +193,7 @@
 					if( openedMultipleFilesAtOnce )
 						relativePath = resp.name + "/";
 					
-					getDownloadLinksInFolderRecursively( fileId, relativePath, function()
-					{
-						if( openedFileIdsStack.length > 0 )
-							getDownloadLinkForOpenedFileOrFolder( openedFileIdsStack.shift() );
-						else
-							statusText.innerHTML = "<b>Status: <span style=\"color:green;\">finished</span></b>";
-					});
+					getDownloadLinksInFolderRecursively( fileId, relativePath );
 				}
 				else
 				{
@@ -208,19 +202,23 @@
 					else
 						updateResult( resp.name, "File isn't shared", false );
 					
-					if( openedFileIdsStack.length > 0 )
-						getDownloadLinkForOpenedFileOrFolder( openedFileIdsStack.shift() );
-					else
-						statusText.innerHTML = "<b>Status: <span style=\"color:green;\">finished</span></b>";
+					downloadLinksForOpenedFileOrFolderAreGenerated();
 				}
 			}
 			else
 				handleError( resp.error );
 		});
-
 	}
 	
-	function getDownloadLinksInFolderRecursively( folderId, relativePath, callback )
+	function downloadLinksForOpenedFileOrFolderAreGenerated()
+	{
+		if( openedFileIdsStack.length > 0 )
+			getDownloadLinkForOpenedFileOrFolder( openedFileIdsStack.shift() );
+		else
+			statusText.innerHTML = "<b>Status: <span style=\"color:green;\">finished</span></b>";
+	}
+	
+	function getDownloadLinksInFolderRecursively( folderId, relativePath )
 	{
 		var getFiles = function(request) 
 		{
@@ -259,10 +257,10 @@
 						{
 							var folderToEnter = waitingFoldersStack.shift();
 							console.log( "Entering folder: " + folderToEnter._relativePath );
-							getDownloadLinksInFolderRecursively( folderToEnter._id, folderToEnter._relativePath, function() {} );
+							getDownloadLinksInFolderRecursively( folderToEnter._id, folderToEnter._relativePath );
 						}
-						else if( callback )
-							callback();
+						else
+							downloadLinksForOpenedFileOrFolderAreGenerated();
 					}
 				}
 				else

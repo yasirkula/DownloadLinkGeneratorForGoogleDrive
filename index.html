@@ -78,6 +78,7 @@
 	var authorizeButton = document.getElementById( 'authorize-div' );
 	
 	var fileId = "";
+	var userId = "";
 	var preCheckError = "You need to right click a file/folder in Drive and select 'Open with->Download Link Generator'.";
 	
 	var waitingFoldersStack = [];
@@ -107,13 +108,17 @@
 				}
 				else
 					preCheckError = "Invalid state, please try again.";
+				
+				if( parametersJSON.userId )
+					userId = parametersJSON.userId;
 			}
 		}
 		
 		gapi.auth.authorize( {
 			'client_id': CLIENT_ID,
 			'scope': SCOPES,
-			'immediate': true
+			'immediate': true,
+			'user_id': userId
 		}, handleAuthResult );
 	}
 
@@ -148,7 +153,8 @@
 		gapi.auth.authorize( {
 			client_id: CLIENT_ID,
 			scope: SCOPES,
-			immediate: false
+			immediate: false,
+			'user_id': userId
 		}, handleAuthResult );
 		
 		return false;

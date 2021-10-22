@@ -77,10 +77,11 @@
 	var preCheckErrorText = document.getElementById( 'pre-check-error' );
 	var authorizeButton = document.getElementById( 'authorize-div' );
 	
-	var fileId = "";
 	var userId = "";
 	var preCheckError = "You need to right click a file/folder in Drive and select 'Open with->Download Link Generator'.";
 	
+	var openedMultipleFilesAtOnce = false;
+	var openedFileIdsStack = [];
 	var waitingFoldersStack = [];
 	
 	function checkAuth() 
@@ -95,15 +96,18 @@
 				{
 					if( parametersJSON.ids )
 					{
-						fileId = parametersJSON.ids[0];
+						for( var i = 0; i < parametersJSON.ids.length; i++ ) 
+							openedFileIdsStack.push( parametersJSON.ids[i] );
+						
+						openedMultipleFilesAtOnce = ( openedFileIdsStack.length > 1 );
 						preCheckError = "";
 					}
 					else
-						preCheckError = "Download links can't be generated for documents created in Drive. You should first convert the document to a downloadable format (e.g. .doc, .docx, .ppt, .xls)."
+						preCheckError = "Download links can't be generated for documents created in Drive. You should first convert the document to a downloadable format (e.g. .doc, .docx, .ppt, .xls).";
 				}
 				else if( parametersJSON.action == "create" && parametersJSON.folderId )
 				{
-					fileId = parametersJSON.folderId;
+					openedFileIdsStack.push( parametersJSON.folderId );
 					preCheckError = "";
 				}
 				else
@@ -134,7 +138,7 @@
 				preCheckErrorText.style.display = 'block';
 				preCheckErrorText.innerHTML = "<b>" + preCheckError + "</b>";
 			}
-			else if( fileId.length > 0 )
+			else if( openedFileIdsStack.length > 0 )
 			{
 				resultTableToggle.style.display = 'block';
 				loadDriveApi();
@@ -162,16 +166,15 @@
 
 	function loadDriveApi() 
 	{
-		gapi.client.load( 'drive', 'v3', handleRequest );
+		gapi.client.load( 'drive', 'v3', function()
+		{
+			statusText.innerHTML = "<b>Status: <span style=\"color:blue;\">generating download link(s), please wait...</span></b>";
+			getDownloadLinkForOpenedFileOrFolder( openedFileIdsStack.shift() );
+		});
 	}
-
-	function handleRequest() 
+	
+	function getDownloadLinkForOpenedFileOrFolder( fileId )
 	{
-		if( fileId.length === 0 )
-			return;
-			
-		statusText.innerHTML = "<b>Status: <span style=\"color:blue;\">generating download link(s), please wait...</span></b>";
-		
 		var request = gapi.client.drive.files.get({
 			'fileId': fileId,
 			'fields': "mimeType, name, webContentLink"
@@ -182,23 +185,41 @@
 			if( !resp.error )
 			{
 				if( resp.mimeType == 'application/vnd.google-apps.folder' )
-					getFilesRecursively( fileId, "" );
+				{
+					// If a single folder is opened, don't start the returned relative paths with this folder's name
+					// Otherwise, start the relative paths with the folder's name to distinguish between all opened files and folders
+					var relativePath = "";
+					if( openedMultipleFilesAtOnce )
+						relativePath = resp.name + "/";
+					
+					getDownloadLinksInFolderRecursively( fileId, relativePath, function()
+					{
+						if( openedFileIdsStack.length > 0 )
+							getDownloadLinkForOpenedFileOrFolder( openedFileIdsStack.shift() );
+						else
+							statusText.innerHTML = "<b>Status: <span style=\"color:green;\">finished</span></b>";
+					});
+				}
 				else
 				{
 					if( resp.webContentLink )
-						updateResult( resp.name, resp.webContentLink );
+						updateResult( resp.name, resp.webContentLink, true );
 					else
-						resultText.innerHTML = "File is not shared";
-						
-					statusText.innerHTML = "<b>Status: <span style=\"color:green;\">finished</span></b>";
+						updateResult( resp.name, "File isn't shared", false );
+					
+					if( openedFileIdsStack.length > 0 )
+						getDownloadLinkForOpenedFileOrFolder( openedFileIdsStack.shift() );
+					else
+						statusText.innerHTML = "<b>Status: <span style=\"color:green;\">finished</span></b>";
 				}
 			}
 			else
 				handleError( resp.error );
 		});
+
 	}
 	
-	function getFilesRecursively( folderId, relativePath )
+	function getDownloadLinksInFolderRecursively( folderId, relativePath, callback )
 	{
 		var getFiles = function(request) 
 		{
@@ -213,7 +234,7 @@
 						{
 							var file = files[i];
 							if( file.webContentLink )
-								updateResult( relativePath + file.name, file.webContentLink );
+								updateResult( relativePath + file.name, file.webContentLink, true );
 						}
 					}
 					
@@ -235,12 +256,10 @@
 						{
 							var folderToEnter = waitingFoldersStack.shift();
 							console.log( "Entering folder: " + folderToEnter._relativePath );
-							getFilesRecursively( folderToEnter._id, folderToEnter._relativePath );
+							getDownloadLinksInFolderRecursively( folderToEnter._id, folderToEnter._relativePath, function() {} );
 						}
-						else
-						{
-							statusText.innerHTML = "<b>Status: <span style=\"color:green;\">finished</span></b>";
-						}
+						else if( callback )
+							callback();
 					}
 				}
 				else
@@ -260,7 +279,7 @@
 						for (var i = 0; i < folders.length; i++) 
 						{
 							var folder = folders[i];
-							waitingFoldersStack.push( { _id: folder.id, _relativePath: relativePath + folder.name + "/" } )
+							waitingFoldersStack.push( { _id: folder.id, _relativePath: relativePath + folder.name + "/" } );
 						}
 					}
 					
@@ -340,13 +359,19 @@
 		statusText.innerHTML = "<b>Status: <span style=\"color:red;\">see error log below</span></b>";
 	}
 	
-	function updateResult( relativePath, link )
+	function updateResult( relativePath, link, isClickable )
 	{
-		resultText.innerHTML += relativePath + " <a href=\"" + link + "\">" + link + "</a>\r\n";
+		if( isClickable )
+			resultText.innerHTML += relativePath + " <a href=\"" + link + "\">" + link + "</a>\r\n";
+		else
+			resultText.innerHTML += relativePath + " " + link + "\r\n";
 		
 		var newRow = resultTable.insertRow( -1 );
 		newRow.insertCell( 0 ).innerHTML = "<pre>" + relativePath + "</pre>";
-		newRow.insertCell( 1 ).innerHTML = "<pre><a href=\"" + link + "\">" + link + "</a></pre>";
+		if( isClickable )
+			newRow.insertCell( 1 ).innerHTML = "<pre><a href=\"" + link + "\">" + link + "</a></pre>";
+		else
+			newRow.insertCell( 1 ).innerHTML = "<pre>" + link + "</pre>";
 	}
 	
 	function onResultsDisplayMethodChanged( checkbox )

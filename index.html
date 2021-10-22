@@ -177,7 +177,8 @@
 	{
 		var request = gapi.client.drive.files.get({
 			'fileId': fileId,
-			'fields': "mimeType, name, webContentLink"
+			'fields': "mimeType, name, webContentLink",
+			'supportsAllDrives': "true"
 		});
 		
 		request.execute( function( resp )
@@ -245,6 +246,8 @@
 							'q': "trashed=false and '" + folderId + "' in parents and mimeType != 'application/vnd.google-apps.folder'",
 							'pageSize': 1000,
 							'fields': "nextPageToken, files(name, webContentLink)",
+							'includeItemsFromAllDrives': "true",
+							'supportsAllDrives': "true",
 							'pageToken': nextPageToken
 						});
 						
@@ -290,6 +293,8 @@
 							'q': "trashed=false and '" + folderId + "' in parents and mimeType = 'application/vnd.google-apps.folder'",
 							'pageSize': 1000,
 							'fields': "nextPageToken, files(id, name)",
+							'includeItemsFromAllDrives': "true",
+							'supportsAllDrives': "true",
 							'pageToken': nextPageToken
 						});
 						
@@ -300,7 +305,9 @@
 						request = gapi.client.drive.files.list({
 							'q': "trashed=false and '" + folderId + "' in parents and mimeType != 'application/vnd.google-apps.folder'",
 							'pageSize': 1000,
-							'fields': "nextPageToken, files(name, webContentLink)"
+							'fields': "nextPageToken, files(name, webContentLink)",
+							'includeItemsFromAllDrives': "true",
+							'supportsAllDrives': "true"
 						});
 						
 						getFiles(request);
@@ -314,7 +321,9 @@
 		var request = gapi.client.drive.files.list({
 			'q': "trashed=false and '" + folderId + "' in parents and mimeType = 'application/vnd.google-apps.folder'",
 			'pageSize': 1000,
-			'fields': "nextPageToken, files(id, name)"
+			'fields': "nextPageToken, files(id, name)",
+			'includeItemsFromAllDrives': "true",
+			'supportsAllDrives': "true"
 		});
 		
 		getFolders( request );

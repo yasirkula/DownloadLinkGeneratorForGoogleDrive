@@ -52,16 +52,25 @@
 	
 	<p id="result-table-toggle" style="display:none">
 		<input type="checkbox" id="result-table-toggle-input" onchange="onResultsDisplayMethodChanged(this)">
-		<label for="result-table-toggle-input">Display results as table</label>
+		<label for="result-table-toggle-input">Display results as table</label><br />
+		
+		<input type="checkbox" id="result-type-toggle-input" onchange="onResultsTypeChanged(this)">
+		<label for="result-type-toggle-input">Display file preview links instead of file download links</label>
 	</p>
 	
 	</div>
 	
 	<pre id="status" style="max-width:680px; margin:0 auto;"><b>Status: <span style="color:blue;">connecting to Drive™ servers, please wait...</span></b></pre><br />
 	
-	<pre id="result" style="display:table; margin:0 auto;"></pre>
+	<div id="result-holder" style="display:block">
+		<pre id="result" style="display:table; margin:0 auto;"></pre>
+		<table id="result-table" style="display:none; margin:0 auto;"></table><br />
+	</div>
 	
-	<table id="result-table" style="display:none; margin:0 auto;"></table><br />
+	<div id="result-preview-links-holder" style="display:none">
+		<pre id="result-preview-links" style="display:table; margin:0 auto;"></pre>
+		<table id="result-preview-links-table" style="display:none; margin:0 auto;"></table><br />
+	</div>
 	
 	<pre id="error" style="color: red; max-width:680px; margin:0 auto;"></pre>
 	
@@ -70,8 +79,12 @@
 	var SCOPES = 'https://www.googleapis.com/auth/drive.install https://www.googleapis.com/auth/drive.metadata.readonly';
 
 	var statusText = document.getElementById( 'status' );
+	var resultHolder = document.getElementById( 'result-holder' );
 	var resultText = document.getElementById( 'result' );
 	var resultTable = document.getElementById( 'result-table' );
+	var resultPreviewLinksHolder = document.getElementById( 'result-preview-links-holder' );
+	var resultPreviewLinksText = document.getElementById( 'result-preview-links' );
+	var resultPreviewLinksTable = document.getElementById( 'result-preview-links-table' );
 	var resultTableToggle = document.getElementById( 'result-table-toggle' );
 	var errorText = document.getElementById( 'error' );
 	var preCheckErrorText = document.getElementById( 'pre-check-error' );
@@ -177,7 +190,7 @@
 	{
 		var request = gapi.client.drive.files.get({
 			'fileId': fileId,
-			'fields': "mimeType, name, webContentLink",
+			'fields': "mimeType, name, webContentLink, webViewLink",
 			'supportsAllDrives': "true"
 		});
 		
@@ -201,6 +214,11 @@
 						updateResult( resp.name, resp.webContentLink, true );
 					else
 						updateResult( resp.name, "File isn't shared", false );
+					
+					if( resp.webViewLink )
+						updatePreviewLinkResult( resp.name, resp.webViewLink, true );
+					else
+						updatePreviewLinkResult( resp.name, "File isn't shared", false );
 					
 					downloadLinksForOpenedFileOrFolderAreGenerated();
 				}
@@ -234,6 +252,8 @@
 							var file = files[i];
 							if( file.webContentLink )
 								updateResult( relativePath + file.name, file.webContentLink, true );
+							if( file.webViewLink )
+								updatePreviewLinkResult( relativePath + file.name, file.webViewLink, true );
 						}
 					}
 					
@@ -243,7 +263,7 @@
 						request = gapi.client.drive.files.list({
 							'q': "trashed=false and '" + folderId + "' in parents and mimeType != 'application/vnd.google-apps.folder'",
 							'pageSize': 1000,
-							'fields': "nextPageToken, files(name, webContentLink)",
+							'fields': "nextPageToken, files(name, webContentLink, webViewLink)",
 							'includeItemsFromAllDrives': "true",
 							'supportsAllDrives': "true",
 							'pageToken': nextPageToken
@@ -280,6 +300,9 @@
 						for (var i = 0; i < folders.length; i++) 
 						{
 							var folder = folders[i];
+							if( folder.webViewLink )
+								updatePreviewLinkResult( relativePath + folder.name + "/", folder.webViewLink, true );
+							
 							waitingFoldersStack.push( { _id: folder.id, _relativePath: relativePath + folder.name + "/" } );
 						}
 					}
@@ -290,7 +313,7 @@
 						request = gapi.client.drive.files.list({
 							'q': "trashed=false and '" + folderId + "' in parents and mimeType = 'application/vnd.google-apps.folder'",
 							'pageSize': 1000,
-							'fields': "nextPageToken, files(id, name)",
+							'fields': "nextPageToken, files(id, name, webViewLink)",
 							'includeItemsFromAllDrives': "true",
 							'supportsAllDrives': "true",
 							'pageToken': nextPageToken
@@ -303,7 +326,7 @@
 						request = gapi.client.drive.files.list({
 							'q': "trashed=false and '" + folderId + "' in parents and mimeType != 'application/vnd.google-apps.folder'",
 							'pageSize': 1000,
-							'fields': "nextPageToken, files(name, webContentLink)",
+							'fields': "nextPageToken, files(name, webContentLink, webViewLink)",
 							'includeItemsFromAllDrives': "true",
 							'supportsAllDrives': "true"
 						});
@@ -319,7 +342,7 @@
 		var request = gapi.client.drive.files.list({
 			'q': "trashed=false and '" + folderId + "' in parents and mimeType = 'application/vnd.google-apps.folder'",
 			'pageSize': 1000,
-			'fields': "nextPageToken, files(id, name)",
+			'fields': "nextPageToken, files(id, name, webViewLink)",
 			'includeItemsFromAllDrives': "true",
 			'supportsAllDrives': "true"
 		});
@@ -381,17 +404,52 @@
 			newRow.insertCell( 1 ).innerHTML = "<pre>" + link + "</pre>";
 	}
 	
+	function updatePreviewLinkResult( relativePath, link, isClickable )
+	{
+		if( isClickable )
+			resultPreviewLinksText.innerHTML += relativePath + " <a href=\"" + link + "\">" + link + "</a>\r\n";
+		else
+			resultPreviewLinksText.innerHTML += relativePath + " " + link + "\r\n";
+		
+		var newRow = resultPreviewLinksTable.insertRow( -1 );
+		newRow.insertCell( 0 ).innerHTML = "<pre>" + relativePath + "</pre>";
+		if( isClickable )
+			newRow.insertCell( 1 ).innerHTML = "<pre><a href=\"" + link + "\">" + link + "</a></pre>";
+		else
+			newRow.insertCell( 1 ).innerHTML = "<pre>" + link + "</pre>";
+	}
+	
 	function onResultsDisplayMethodChanged( checkbox )
 	{
 		if( checkbox.checked )
 		{
 			resultText.style.display = 'none';
 			resultTable.style.display = 'table';
+			
+			resultPreviewLinksText.style.display = 'none';
+			resultPreviewLinksTable.style.display = 'table';
 		}
 		else
 		{
 			resultText.style.display = 'table';
 			resultTable.style.display = 'none';
+			
+			resultPreviewLinksText.style.display = 'table';
+			resultPreviewLinksTable.style.display = 'none';
+		}
+	}
+	
+	function onResultsTypeChanged( checkbox )
+	{
+		if( checkbox.checked )
+		{
+			resultHolder.style.display = 'none';
+			resultPreviewLinksHolder.style.display = 'block';
+		}
+		else
+		{
+			resultHolder.style.display = 'block';
+			resultPreviewLinksHolder.style.display = 'none';
 		}
 	}
 	

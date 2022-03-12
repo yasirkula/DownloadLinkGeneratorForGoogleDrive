@@ -97,6 +97,11 @@
 	var openedFileIdsStack = [];
 	var waitingFoldersStack = [];
 	
+	function handleClientLoad()
+	{
+		gapi.load( 'client:auth2', checkAuth );
+	}
+	
 	function checkAuth() 
 	{
 		var parameters = getQueryVariable( 'state' );
@@ -131,11 +136,11 @@
 			}
 		}
 		
-		gapi.auth.authorize( {
-			'client_id': CLIENT_ID,
-			'scope': SCOPES,
-			'immediate': true,
-			'user_id': userId
+		gapi.auth2.authorize( {
+			client_id: CLIENT_ID,
+			scope: SCOPES,
+			prompt: 'none',
+			login_hint: userId
 		}, handleAuthResult );
 	}
 
@@ -167,11 +172,11 @@
 
 	function handleAuthClick() 
 	{
-		gapi.auth.authorize( {
+		gapi.auth2.authorize( {
 			client_id: CLIENT_ID,
 			scope: SCOPES,
-			immediate: false,
-			'user_id': userId
+			prompt: 'select_account',
+			login_hint: userId
 		}, handleAuthResult );
 		
 		return false;
@@ -471,6 +476,9 @@
 		return "";
 	}
 	</script>
-	<script src="https://apis.google.com/js/client.js?onload=checkAuth"></script>
+	<script async defer src="https://apis.google.com/js/api.js"
+		onload="this.onload=function(){};handleClientLoad()"
+		onreadystatechange="if (this.readyState === 'complete') this.onload()">
+	</script>
 </body>
 </html>

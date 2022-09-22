@@ -76,6 +76,8 @@
 	
 	<script>
 	var CLIENT_ID = 'YOUR_APP_CLIENT_ID';
+	var API_KEY = 'YOUR_APP_API_KEY';
+	var DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 	var SCOPES = 'https://www.googleapis.com/auth/drive.install https://www.googleapis.com/auth/drive.metadata.readonly';
 
 	var statusText = document.getElementById( 'status' );
@@ -93,17 +95,46 @@
 	var userId = "";
 	var preCheckError = "You need to right click a file/folder in Drive and select 'Open with->Download Link Generator'.";
 	
+	var gapiInited = false;
+	var gisInited = false;
+	var tokenClient;
+	
 	var openedMultipleFilesAtOnce = false;
 	var openedFileIdsStack = [];
 	var waitingFoldersStack = [];
 	
-	function handleClientLoad()
+	function gapiLoaded()
 	{
-		gapi.load( 'client:auth2', checkAuth );
+		gapi.load( 'client', initializeGapiClient );
+	}
+	
+	async function initializeGapiClient()
+	{
+		await gapi.client.init( {
+			apiKey: API_KEY,
+			discoveryDocs: [DISCOVERY_DOC]
+		} );
+
+		gapiInited = true;
+		checkAuth();
+	}
+	
+	function gisLoaded() {
+		tokenClient = google.accounts.oauth2.initTokenClient( {
+			client_id: CLIENT_ID,
+			scope: SCOPES,
+			callback: ''
+		} );
+		
+		gisInited = true;
+		checkAuth();
 	}
 	
 	function checkAuth() 
 	{
+		if( !gapiInited || !gisInited )
+			return;
+		
 		var parameters = getQueryVariable( 'state' );
 		if( parameters && parameters.length > 0 )
 		{
@@ -136,17 +167,27 @@
 			}
 		}
 		
-		gapi.auth2.authorize( {
-			client_id: CLIENT_ID,
-			scope: SCOPES,
+		tokenClient.callback = handleAuthResult;
+		
+		tokenClient.requestAccessToken( {
 			prompt: 'none',
-			login_hint: userId
-		}, handleAuthResult );
+			hint: userId
+		} );
+	}
+	
+	function handleAuthClick() 
+	{
+		tokenClient.requestAccessToken( {
+			prompt: 'select_account',
+			hint: userId
+		} );
+		
+		return false;
 	}
 
 	function handleAuthResult( authResult ) 
 	{
-		if( authResult && !authResult.error )
+		if( authResult && !authResult.error && google.accounts.oauth2.hasGrantedAllScopes( authResult, 'https://www.googleapis.com/auth/drive.metadata.readonly' ) )
 		{
 			authorizeButton.style.display = 'none';
 			
@@ -159,7 +200,9 @@
 			else if( openedFileIdsStack.length > 0 )
 			{
 				resultTableToggle.style.display = 'block';
-				loadDriveApi();
+				statusText.innerHTML = "<b>Status: <span style=\"color:blue;\">generating download link(s), please wait...</span></b>";
+				
+				getDownloadLinkForOpenedFileOrFolder( openedFileIdsStack.shift() );
 			}
 		}
 		else
@@ -168,27 +211,6 @@
 			preCheckErrorText.style.display = 'none';
 			statusText.innerHTML = "";
 		}
-	}
-
-	function handleAuthClick() 
-	{
-		gapi.auth2.authorize( {
-			client_id: CLIENT_ID,
-			scope: SCOPES,
-			prompt: 'select_account',
-			login_hint: userId
-		}, handleAuthResult );
-		
-		return false;
-	}
-
-	function loadDriveApi() 
-	{
-		gapi.client.load( 'drive', 'v3', function()
-		{
-			statusText.innerHTML = "<b>Status: <span style=\"color:blue;\">generating download link(s), please wait...</span></b>";
-			getDownloadLinkForOpenedFileOrFolder( openedFileIdsStack.shift() );
-		});
 	}
 	
 	function getDownloadLinkForOpenedFileOrFolder( fileId )
@@ -477,7 +499,11 @@
 	}
 	</script>
 	<script async defer src="https://apis.google.com/js/api.js"
-		onload="this.onload=function(){};handleClientLoad()"
+		onload="this.onload=function(){};gapiLoaded()"
+		onreadystatechange="if (this.readyState === 'complete') this.onload()">
+	</script>
+	<script async defer src="https://accounts.google.com/gsi/client"
+		onload="this.onload=function(){};gisLoaded()"
 		onreadystatechange="if (this.readyState === 'complete') this.onload()">
 	</script>
 </body>

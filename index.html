@@ -20,6 +20,14 @@
 	{
 		margin: 7px 0px 7px 0px;
 	}
+	pre.wordwrapped /* Source: https://stackoverflow.com/a/248013/2373034 */
+	{
+		white-space: pre-wrap;       /* Since CSS 2.1 */
+		white-space: -moz-pre-wrap;  /* Mozilla, since 1999 */
+		white-space: -pre-wrap;      /* Opera 4-6 */
+		white-space: -o-pre-wrap;    /* Opera 7 */
+		word-wrap: break-word;       /* Internet Explorer 5.5+ */
+	}
 	</style>
 </head>
 <body style="font-family: Helvetica, sans-serif; margin-bottom: 60px;">
@@ -60,7 +68,7 @@
 	
 	</div>
 	
-	<pre id="status" style="max-width:680px; margin:0 auto;"><b>Status: <span style="color:blue;">connecting to Drive™ servers, please wait...</span></b></pre><br />
+	<pre id="status" style="max-width:680px; margin:0 auto;" class="wordwrapped"><b>Status: <span style="color:blue;">connecting to Drive™ servers, please wait... <i>(If nothing happens, please make sure that pop-ups are enabled and try again since authorization is handled via a pop-up)</i></span></b></pre><br />
 	
 	<div id="result-holder" style="display:block">
 		<pre id="result" style="display:table; margin:0 auto;"></pre>
@@ -72,7 +80,7 @@
 		<table id="result-preview-links-table" style="display:none; margin:0 auto;"></table><br />
 	</div>
 	
-	<pre id="error" style="color: red; max-width:680px; margin:0 auto;"></pre>
+	<pre id="error" style="color: red; max-width:680px; margin:0 auto;" class="wordwrapped"></pre>
 	
 	<script>
 	var CLIENT_ID = 'YOUR_APP_CLIENT_ID';
@@ -119,7 +127,8 @@
 		checkAuth();
 	}
 	
-	function gisLoaded() {
+	function gisLoaded()
+	{
 		tokenClient = google.accounts.oauth2.initTokenClient( {
 			client_id: CLIENT_ID,
 			scope: SCOPES,
@@ -130,7 +139,7 @@
 		checkAuth();
 	}
 	
-	function checkAuth() 
+	function checkAuth()
 	{
 		if( !gapiInited || !gisInited )
 			return;
@@ -145,11 +154,14 @@
 				{
 					if( parametersJSON.ids )
 					{
-						for( var i = 0; i < parametersJSON.ids.length; i++ ) 
-							openedFileIdsStack.push( parametersJSON.ids[i] );
-						
-						openedMultipleFilesAtOnce = ( openedFileIdsStack.length > 1 );
-						preCheckError = "";
+						if( parametersJSON.ids.length > 0 )
+						{
+							for( var i = 0; i < parametersJSON.ids.length; i++ ) 
+								openedFileIdsStack.push( parametersJSON.ids[i] );
+							
+							openedMultipleFilesAtOnce = ( openedFileIdsStack.length > 1 );
+							preCheckError = "";
+						}
 					}
 					else
 						preCheckError = "Download links can't be generated for documents created in Drive. You should first convert the document to a downloadable format (e.g. .doc, .docx, .ppt, .xls).";
@@ -175,7 +187,7 @@
 		} );
 	}
 	
-	function handleAuthClick() 
+	function handleAuthClick()
 	{
 		tokenClient.requestAccessToken( {
 			prompt: 'select_account',
@@ -185,7 +197,7 @@
 		return false;
 	}
 
-	function handleAuthResult( authResult ) 
+	function handleAuthResult( authResult )
 	{
 		if( authResult && !authResult.error && google.accounts.oauth2.hasGrantedAllScopes( authResult, 'https://www.googleapis.com/auth/drive.metadata.readonly' ) )
 		{
@@ -197,7 +209,7 @@
 				preCheckErrorText.style.display = 'block';
 				preCheckErrorText.innerHTML = "<b>" + preCheckError + "</b>";
 			}
-			else if( openedFileIdsStack.length > 0 )
+			else
 			{
 				resultTableToggle.style.display = 'block';
 				statusText.innerHTML = "<b>Status: <span style=\"color:blue;\">generating download link(s), please wait...</span></b>";

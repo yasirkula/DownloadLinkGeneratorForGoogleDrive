@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	<meta name="Cross-Origin-Opener-Policy" content="same-origin">
 	<title>Download Link Generator for Drive™</title>
 	<link rel="icon" href="favicon.png">
 	<style>
@@ -66,26 +67,35 @@
 	
 	<p id="pre-check-error" style="color:red; display:none;"></p>
 	
-	<p id="result-table-toggle" style="display:none">
-		<input type="checkbox" id="result-table-toggle-input" onchange="onResultsDisplayMethodChanged(this)">
-		<label for="result-table-toggle-input">Display results as table</label><br />
+	<p id="result-filters" style="display:none">
+		Display results for: 
+		<select onchange="onResultsTypeChanged(this.selectedIndex)">
+			<option selected>Download links</option>
+			<option>Preview links</option>
+			<option>Image embed links</option>
+		</select><br />
 		
-		<input type="checkbox" id="result-type-toggle-input" onchange="onResultsTypeChanged(this)">
-		<label for="result-type-toggle-input">Display file preview links instead of file download links</label>
+		<input type="checkbox" id="result-table-toggle-input" onchange="onResultsDisplayMethodChanged(this)">
+		<label for="result-table-toggle-input">Display results as table</label>
 	</p>
 	
 	</div>
 	
 	<pre id="status" style="max-width:680px; margin:0 auto;" class="wordwrapped"><b>Status: <span style="color:blue;">connecting to Drive™ servers, please wait... <i>(If nothing happens, please make sure that pop-ups are enabled and try again since authorization is handled via a pop-up)</i></span></b></pre><br />
 	
-	<div id="result-holder" style="display:block">
-		<pre id="result" style="display:table; margin:0 auto;"></pre>
-		<table id="result-table" style="display:none; margin:0 auto;"></table><br />
+	<div id="result-download-links-holder" style="display:block">
+		<pre id="result-download-links" style="display:table; margin:0 auto;"></pre>
+		<table id="result-download-links-table" style="display:none; margin:0 auto;"></table><br />
 	</div>
 	
 	<div id="result-preview-links-holder" style="display:none">
 		<pre id="result-preview-links" style="display:table; margin:0 auto;"></pre>
 		<table id="result-preview-links-table" style="display:none; margin:0 auto;"></table><br />
+	</div>
+	
+	<div id="result-embed-links-holder" style="display:none">
+		<pre id="result-embed-links" style="display:table; margin:0 auto;"></pre>
+		<table id="result-embed-links-table" style="display:none; margin:0 auto;"></table><br />
 	</div>
 	
 	<pre id="error" style="color: red; max-width:680px; margin:0 auto;" class="wordwrapped"></pre>
@@ -97,16 +107,22 @@
 	var SCOPES = 'https://www.googleapis.com/auth/drive.install https://www.googleapis.com/auth/drive.metadata.readonly';
 
 	var statusText = document.getElementById( 'status' );
-	var resultHolder = document.getElementById( 'result-holder' );
-	var resultText = document.getElementById( 'result' );
-	var resultTable = document.getElementById( 'result-table' );
-	var resultPreviewLinksHolder = document.getElementById( 'result-preview-links-holder' );
-	var resultPreviewLinksText = document.getElementById( 'result-preview-links' );
-	var resultPreviewLinksTable = document.getElementById( 'result-preview-links-table' );
-	var resultTableToggle = document.getElementById( 'result-table-toggle' );
 	var errorText = document.getElementById( 'error' );
 	var preCheckErrorText = document.getElementById( 'pre-check-error' );
 	var authorizeButton = document.getElementById( 'authorize-div' );
+	var resultFilters = document.getElementById( 'result-filters' );
+	
+	var resultDownloadLinksHolder = document.getElementById('result-download-links-holder');
+	var resultDownloadLinksText = document.getElementById('result-download-links');
+	var resultDownloadLinksTable = document.getElementById('result-download-links-table');
+	
+	var resultPreviewLinksHolder = document.getElementById('result-preview-links-holder');
+	var resultPreviewLinksText = document.getElementById('result-preview-links');
+	var resultPreviewLinksTable = document.getElementById('result-preview-links-table');
+	
+	var resultEmbedLinksHolder = document.getElementById('result-embed-links-holder');
+	var resultEmbedLinksText = document.getElementById('result-embed-links');
+	var resultEmbedLinksTable = document.getElementById('result-embed-links-table');
 	
 	var userId = "";
 	var preCheckError = "You need to right click a file/folder in Drive and select 'Open with->Download Link Generator'.";
@@ -219,7 +235,7 @@
 			}
 			else
 			{
-				resultTableToggle.style.display = 'block';
+				resultFilters.style.display = 'block';
 				statusText.innerHTML = "<b>Status: <span style=\"color:blue;\">generating download link(s), please wait...</span></b>";
 				
 				getDownloadLinkForOpenedFileOrFolder( openedFileIdsStack.shift() );
@@ -249,24 +265,13 @@
 				{
 					// If a single folder is opened, don't start the returned relative paths with this folder's name
 					// Otherwise, start the relative paths with the folder's name to distinguish between all opened files and folders
-					var relativePath = "";
-					if( openedMultipleFilesAtOnce )
-						relativePath = resp.name + "/";
-					
+					var relativePath = openedMultipleFilesAtOnce ? (resp.name + "/") : "";
 					getDownloadLinksInFolderRecursively( fileId, relativePath );
 				}
 				else
 				{
-					if( resp.webContentLink )
-						updateResult( resp.name, resp.webContentLink, true );
-					else
-						updateResult( resp.name, "File isn't shared", false );
-					
-					if( resp.webViewLink )
-						updatePreviewLinkResult( resp.name, resp.webViewLink, true );
-					else
-						updatePreviewLinkResult( resp.name, "File isn't shared", false );
-					
+					resp.id = fileId;
+					onFileRetrieved(resp.name, resp, true);
 					downloadLinksForOpenedFileOrFolderAreGenerated();
 				}
 			}
@@ -295,29 +300,11 @@
 					if (files && files.length > 0) 
 					{
 						for (var i = 0; i < files.length; i++) 
-						{
-							var file = files[i];
-							if( file.webContentLink )
-								updateResult( relativePath + file.name, file.webContentLink, true );
-							if( file.webViewLink )
-								updatePreviewLinkResult( relativePath + file.name, file.webViewLink, true );
-						}
+							onFileRetrieved(relativePath + files[i].name, files[i], false);
 					}
 					
-					var nextPageToken = resp.nextPageToken;
-					if (nextPageToken) 
-					{
-						request = gapi.client.drive.files.list({
-							'q': "trashed=false and '" + folderId + "' in parents and mimeType != 'application/vnd.google-apps.folder'",
-							'pageSize': 1000,
-							'fields': "nextPageToken, files(name, webContentLink, webViewLink)",
-							'includeItemsFromAllDrives': "true",
-							'supportsAllDrives': "true",
-							'pageToken': nextPageToken
-						});
-						
-						getFiles(request);
-					}
+					if (resp.nextPageToken)
+						getFiles(getListFilesRequest(folderId, false, resp.nextPageToken));
 					else
 					{
 						if( waitingFoldersStack.length > 0 )
@@ -333,7 +320,7 @@
 				else
 					handleError( resp.error );
 			});
-		}
+		};
 		
 		var getFolders = function(request) 
 		{
@@ -347,54 +334,41 @@
 						for (var i = 0; i < folders.length; i++) 
 						{
 							var folder = folders[i];
-							if( folder.webViewLink )
-								updatePreviewLinkResult( relativePath + folder.name + "/", folder.webViewLink, true );
+							if (folder.webViewLink)
+								onPreviewLinkRetrieved(relativePath + folder.name + "/", folder.webViewLink);
 							
 							waitingFoldersStack.push( { _id: folder.id, _relativePath: relativePath + folder.name + "/" } );
 						}
 					}
 					
-					var nextPageToken = resp.nextPageToken;
-					if (nextPageToken) 
-					{
-						request = gapi.client.drive.files.list({
-							'q': "trashed=false and '" + folderId + "' in parents and mimeType = 'application/vnd.google-apps.folder'",
-							'pageSize': 1000,
-							'fields': "nextPageToken, files(id, name, webViewLink)",
-							'includeItemsFromAllDrives': "true",
-							'supportsAllDrives': "true",
-							'pageToken': nextPageToken
-						});
-						
-						getFolders(request);
-					}
+					if (resp.nextPageToken)
+						getFolders(getListFilesRequest(folderId, true, resp.nextPageToken));
 					else
-					{
-						request = gapi.client.drive.files.list({
-							'q': "trashed=false and '" + folderId + "' in parents and mimeType != 'application/vnd.google-apps.folder'",
-							'pageSize': 1000,
-							'fields': "nextPageToken, files(name, webContentLink, webViewLink)",
-							'includeItemsFromAllDrives': "true",
-							'supportsAllDrives': "true"
-						});
-						
-						getFiles(request);
-					}
+						getFiles(getListFilesRequest(folderId, false, null));
 				}
 				else
 					handleError( resp.error );
 			});
-		}
+		};
 		
-		var request = gapi.client.drive.files.list({
-			'q': "trashed=false and '" + folderId + "' in parents and mimeType = 'application/vnd.google-apps.folder'",
+		getFolders(getListFilesRequest(folderId, true, null));
+	}
+	
+	function getListFilesRequest(folderId, listFolders, nextPageToken)
+	{
+		var query =
+		{
+			'q': "trashed=false and '" + folderId + "' in parents and mimeType " + (listFolders ? "=" : "!=") + " 'application/vnd.google-apps.folder'",
 			'pageSize': 1000,
-			'fields': "nextPageToken, files(id, name, webViewLink)",
+			'fields': "nextPageToken, files(id, name, webViewLink" + (listFolders ? "" : ", webContentLink") + ")",
 			'includeItemsFromAllDrives': "true",
 			'supportsAllDrives': "true"
-		});
+		};
 		
-		getFolders( request );
+		if (nextPageToken != null)
+			query.pageToken = nextPageToken;
+		
+		return gapi.client.drive.files.list(query);
 	}
 	
 	function handleError( err )
@@ -436,68 +410,58 @@
 		statusText.innerHTML = "<b>Status: <span style=\"color:red;\">see error log below</span></b>";
 	}
 	
-	function updateResult( relativePath, link, isClickable )
+	function onFileRetrieved(relativePath, file, showWarningForUnavailableFiles)
 	{
-		if( isClickable )
+		if (file.webContentLink || showWarningForUnavailableFiles)
+			onDownloadLinkRetrieved(relativePath, file.webContentLink);
+		if (file.webViewLink || showWarningForUnavailableFiles)
+			onPreviewLinkRetrieved(relativePath, file.webViewLink);
+		if (file.id || showWarningForUnavailableFiles)
+			onEmbedLinkRetrieved(relativePath, file.id ? ("https://lh3.googleusercontent.com/d/" + file.id) : null); // Credit: https://stackoverflow.com/a/70143719/2373034
+	}
+	
+	function onDownloadLinkRetrieved(relativePath, link)
+	{
+		updateResult(relativePath, link, resultDownloadLinksText, resultDownloadLinksTable);
+	}
+	
+	function onPreviewLinkRetrieved(relativePath, link)
+	{
+		updateResult(relativePath, link, resultPreviewLinksText, resultPreviewLinksTable);
+	}
+	
+	function onEmbedLinkRetrieved(relativePath, link)
+	{
+		updateResult(relativePath, link, resultEmbedLinksText, resultEmbedLinksTable);
+	}
+	
+	function updateResult(relativePath, link, resultText, resultTable)
+	{
+		var newRow = resultTable.insertRow(-1);
+		newRow.insertCell(0).innerHTML = "<pre>" + relativePath + "</pre>";
+		if (link != null)
+		{
 			resultText.innerHTML += relativePath + " <a href=\"" + link + "\">" + link + "</a>\r\n";
-		else
-			resultText.innerHTML += relativePath + " " + link + "\r\n";
-		
-		var newRow = resultTable.insertRow( -1 );
-		newRow.insertCell( 0 ).innerHTML = "<pre>" + relativePath + "</pre>";
-		if( isClickable )
-			newRow.insertCell( 1 ).innerHTML = "<pre><a href=\"" + link + "\">" + link + "</a></pre>";
-		else
-			newRow.insertCell( 1 ).innerHTML = "<pre>" + link + "</pre>";
-	}
-	
-	function updatePreviewLinkResult( relativePath, link, isClickable )
-	{
-		if( isClickable )
-			resultPreviewLinksText.innerHTML += relativePath + " <a href=\"" + link + "\">" + link + "</a>\r\n";
-		else
-			resultPreviewLinksText.innerHTML += relativePath + " " + link + "\r\n";
-		
-		var newRow = resultPreviewLinksTable.insertRow( -1 );
-		newRow.insertCell( 0 ).innerHTML = "<pre>" + relativePath + "</pre>";
-		if( isClickable )
-			newRow.insertCell( 1 ).innerHTML = "<pre><a href=\"" + link + "\">" + link + "</a></pre>";
-		else
-			newRow.insertCell( 1 ).innerHTML = "<pre>" + link + "</pre>";
-	}
-	
-	function onResultsDisplayMethodChanged( checkbox )
-	{
-		if( checkbox.checked )
-		{
-			resultText.style.display = 'none';
-			resultTable.style.display = 'table';
-			
-			resultPreviewLinksText.style.display = 'none';
-			resultPreviewLinksTable.style.display = 'table';
+			newRow.insertCell(1).innerHTML = "<pre><a href=\"" + link + "\">" + link + "</a></pre>";
 		}
 		else
 		{
-			resultText.style.display = 'table';
-			resultTable.style.display = 'none';
-			
-			resultPreviewLinksText.style.display = 'table';
-			resultPreviewLinksTable.style.display = 'none';
+			resultText.innerHTML += relativePath + " Link couldn't be fetched\r\n";
+			newRow.insertCell(1).innerHTML = "<pre>Link couldn't be fetched</pre>";
 		}
 	}
 	
-	function onResultsTypeChanged( checkbox )
+	function onResultsDisplayMethodChanged(checkbox)
 	{
-		if( checkbox.checked )
-		{
-			resultHolder.style.display = 'none';
-			resultPreviewLinksHolder.style.display = 'block';
-		}
-		else
-		{
-			resultHolder.style.display = 'block';
-			resultPreviewLinksHolder.style.display = 'none';
-		}
+		resultDownloadLinksText.style.display = resultPreviewLinksText.style.display = resultEmbedLinksText.style.display = checkbox.checked ? 'none' : 'table';
+		resultDownloadLinksTable.style.display = resultPreviewLinksTable.style.display = resultEmbedLinksTable.style.display = checkbox.checked ? 'table' : 'none';
+	}
+	
+	function onResultsTypeChanged(resultsType)
+	{
+		resultDownloadLinksHolder.style.display = (resultsType == "0") ? 'block' : 'none';
+		resultPreviewLinksHolder.style.display = (resultsType == "1") ? 'block' : 'none';
+		resultEmbedLinksHolder.style.display = (resultsType == "2") ? 'block' : 'none';
 	}
 	
 	// Credit: https://css-tricks.com/snippets/javascript/get-url-variables/
